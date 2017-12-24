@@ -25,14 +25,6 @@
 #include <libopencm3/usb/usbd.h>
 #include <libopencm3/usb/hid.h>
 
-/* Define this to include the DFU APP interface. */
-#define INCLUDE_DFU_INTERFACE
-
-#ifdef INCLUDE_DFU_INTERFACE
-#include <libopencm3/cm3/scb.h>
-#include <libopencm3/usb/dfu.h>
-#endif
-
 static usbd_device *usbd_dev;
 
 const struct usb_device_descriptor dev_descr = {
@@ -139,51 +131,16 @@ const struct usb_interface_descriptor hid_iface = {
 	.extralen = sizeof(hid_function),
 };
 
-#ifdef INCLUDE_DFU_INTERFACE
-const struct usb_dfu_descriptor dfu_function = {
-	.bLength = sizeof(struct usb_dfu_descriptor),
-	.bDescriptorType = DFU_FUNCTIONAL,
-	.bmAttributes = USB_DFU_CAN_DOWNLOAD | USB_DFU_WILL_DETACH,
-	.wDetachTimeout = 255,
-	.wTransferSize = 1024,
-	.bcdDFUVersion = 0x011A,
-};
-
-const struct usb_interface_descriptor dfu_iface = {
-	.bLength = USB_DT_INTERFACE_SIZE,
-	.bDescriptorType = USB_DT_INTERFACE,
-	.bInterfaceNumber = 1,
-	.bAlternateSetting = 0,
-	.bNumEndpoints = 0,
-	.bInterfaceClass = 0xFE,
-	.bInterfaceSubClass = 1,
-	.bInterfaceProtocol = 1,
-	.iInterface = 0,
-
-	.extra = &dfu_function,
-	.extralen = sizeof(dfu_function),
-};
-#endif
-
 const struct usb_interface ifaces[] = {{
 	.num_altsetting = 1,
 	.altsetting = &hid_iface,
-#ifdef INCLUDE_DFU_INTERFACE
-}, {
-	.num_altsetting = 1,
-	.altsetting = &dfu_iface,
-#endif
 }};
 
 const struct usb_config_descriptor config = {
 	.bLength = USB_DT_CONFIGURATION_SIZE,
 	.bDescriptorType = USB_DT_CONFIGURATION,
 	.wTotalLength = 0,
-#ifdef INCLUDE_DFU_INTERFACE
-	.bNumInterfaces = 2,
-#else
 	.bNumInterfaces = 1,
-#endif
 	.bConfigurationValue = 1,
 	.iConfiguration = 0,
 	.bmAttributes = 0xC0,
@@ -219,34 +176,6 @@ static int hid_control_request(usbd_device *dev, struct usb_setup_data *req, uin
 	return 1;
 }
 
-#ifdef INCLUDE_DFU_INTERFACE
-static void dfu_detach_complete(usbd_device *dev, struct usb_setup_data *req)
-{
-	(void)req;
-	(void)dev;
-
-	gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ,
-		      GPIO_CNF_OUTPUT_PUSHPULL, GPIO10);
-	gpio_set(GPIOA, GPIO10);
-	scb_reset_core();
-}
-
-static int dfu_control_request(usbd_device *dev, struct usb_setup_data *req, uint8_t **buf, uint16_t *len,
-			void (**complete)(usbd_device *, struct usb_setup_data *))
-{
-	(void)buf;
-	(void)len;
-	(void)dev;
-
-	if ((req->bmRequestType != 0x21) || (req->bRequest != DFU_DETACH))
-		return 0; /* Only accept class request. */
-
-	*complete = dfu_detach_complete;
-
-	return 1;
-}
-#endif
-
 static void hid_set_config(usbd_device *dev, uint16_t wValue)
 {
 	(void)wValue;
@@ -259,13 +188,6 @@ static void hid_set_config(usbd_device *dev, uint16_t wValue)
 				USB_REQ_TYPE_STANDARD | USB_REQ_TYPE_INTERFACE,
 				USB_REQ_TYPE_TYPE | USB_REQ_TYPE_RECIPIENT,
 				hid_control_request);
-#ifdef INCLUDE_DFU_INTERFACE
-	usbd_register_control_callback(
-				dev,
-				USB_REQ_TYPE_CLASS | USB_REQ_TYPE_INTERFACE,
-				USB_REQ_TYPE_TYPE | USB_REQ_TYPE_RECIPIENT,
-				dfu_control_request);
-#endif
 
 	systick_set_clocksource(STK_CSR_CLKSOURCE_AHB_DIV8);
 	/* SysTick interrupt every N clock pulses: set reload to N-1 */
