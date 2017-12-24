@@ -1,3 +1,4 @@
+// vim: tabstop=8 softtabstop=8 shiftwidth=8 noexpandtab
 /*
  * This file is part of the libopencm3 project.
  *
