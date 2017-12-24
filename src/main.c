@@ -351,6 +351,25 @@ static int cdcacm_control_request(usbd_device *dev,
 	return 0;
 }
 
+static int dir = 1;
+static bool jiggler = true;
+void sys_tick_handler(void)
+{
+	static int x = 0;
+	uint8_t buf[4] = {0, 0, 0, 0};
+
+	buf[1] = dir;
+	if (jiggler) {
+		x += dir;
+		if (x > 30)
+			dir = -dir;
+		if (x < -30)
+			dir = -dir;
+	}
+
+	usbd_ep_write_packet(usbd_dev, 0x81, buf, 4);
+}
+
 static void usbuart_usb_out_cb(usbd_device *dev, uint8_t ep)
 {
 	(void)ep;
@@ -360,8 +379,24 @@ static void usbuart_usb_out_cb(usbd_device *dev, uint8_t ep)
 					buf, CDCACM_PACKET_SIZE);
 
 
-	for(int i = 0; i < len; i++)
+	for(int i = 0; i < len; i++) {
 		gpio_toggle(GPIOC, GPIO13);
+		if (buf[i] == 'a') {
+			dir = -1;
+			jiggler = false;
+		} else if (buf[i] == 'd') {
+			dir = 1;
+			jiggler = false;
+		} else if (buf[i] == 'w') {
+			dir = 2;
+			jiggler = false;
+		} else if (buf[i] == 's') {
+			dir = 0;
+			jiggler = false;
+		} else if (buf[i] == 'q') {
+			jiggler = !jiggler;
+		}
+	}
 }
 
 void usbuart_usb_in_cb(usbd_device *dev, uint8_t ep)
@@ -418,18 +453,3 @@ int main(void)
 		usbd_poll(usbd_dev);
 }
 
-void sys_tick_handler(void)
-{
-	static int x = 0;
-	static int dir = 1;
-	uint8_t buf[4] = {0, 0, 0, 0};
-
-	buf[1] = dir;
-	x += dir;
-	if (x > 30)
-		dir = -dir;
-	if (x < -30)
-		dir = -dir;
-
-	usbd_ep_write_packet(usbd_dev, 0x81, buf, 4);
-}
