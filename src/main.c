@@ -388,9 +388,14 @@ static int cdcacm_control_request(usbd_device *dev,
 static int dir = 1;
 static bool jiggler = true;
 static bool spam_keyboard = true;
+static uint8_t report[9] = {0};
 void sys_tick_handler(void)
 {
-	if (jiggler) {
+	static bool toggle = false;
+
+	if (jiggler && toggle) {
+		for (int i = 0; i < 1000000; ++i) asm("nop");
+
 		static int x = 0;
 		uint8_t buf[5] = {0, 0, 0, 0, 0};
 
@@ -405,14 +410,15 @@ void sys_tick_handler(void)
 		usbd_ep_write_packet(usbd_dev, 0x81, buf, sizeof(buf));
 	}
 
-	if (spam_keyboard) {
-		uint8_t report[9] = {0};
+	if (spam_keyboard && !toggle) {
 		report[0] = 1; // keyboard
 		report[1] = 0; // no modifiers down
 		report[2] = 0;
-		report[3] = 0x04; // 'A'
+		report[3] = 0x06; // 'c'
 		usbd_ep_write_packet(usbd_dev, 0x81, report, sizeof(report));
 	}
+
+	toggle = !toggle;
 }
 
 static void usbuart_usb_out_cb(usbd_device *dev, uint8_t ep)
