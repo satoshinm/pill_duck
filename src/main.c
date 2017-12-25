@@ -255,7 +255,7 @@ const struct usb_endpoint_descriptor hid_endpoint = {
 	.bDescriptorType = USB_DT_ENDPOINT,
 	.bEndpointAddress = 0x81,
 	.bmAttributes = USB_ENDPOINT_ATTR_INTERRUPT,
-	.wMaxPacketSize = 4,
+	.wMaxPacketSize = 9,
 	.bInterval = 0x20,
 };
 
@@ -403,7 +403,7 @@ void sys_tick_handler(void)
 			dir = -dir;
 	}
 
-	usbd_ep_write_packet(usbd_dev, 0x81, buf, 4);
+	usbd_ep_write_packet(usbd_dev, 0x81, buf, sizeof(buf));
 }
 
 static void usbuart_usb_out_cb(usbd_device *dev, uint8_t ep)
