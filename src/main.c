@@ -387,23 +387,32 @@ static int cdcacm_control_request(usbd_device *dev,
 
 static int dir = 1;
 static bool jiggler = true;
+static bool spam_keyboard = true;
 void sys_tick_handler(void)
 {
-	static int x = 0;
-	uint8_t buf[5] = {0, 0, 0, 0, 0};
-
-	buf[0] = 2; // mouse
-
-	buf[2] = dir;
 	if (jiggler) {
+		static int x = 0;
+		uint8_t buf[5] = {0, 0, 0, 0, 0};
+
+		buf[0] = 2; // mouse
+		buf[2] = dir;
+
 		x += dir;
 		if (x > 30)
 			dir = -dir;
 		if (x < -30)
 			dir = -dir;
+		usbd_ep_write_packet(usbd_dev, 0x81, buf, sizeof(buf));
 	}
 
-	usbd_ep_write_packet(usbd_dev, 0x81, buf, sizeof(buf));
+	if (spam_keyboard) {
+		uint8_t report[9] = {0};
+		report[0] = 1; // keyboard
+		report[1] = 0; // no modifiers down
+		report[2] = 0;
+		report[3] = 0x04; // 'A'
+		usbd_ep_write_packet(usbd_dev, 0x81, report, sizeof(report));
+	}
 }
 
 static void usbuart_usb_out_cb(usbd_device *dev, uint8_t ep)
@@ -431,6 +440,8 @@ static void usbuart_usb_out_cb(usbd_device *dev, uint8_t ep)
 			jiggler = false;
 		} else if (buf[i] == 'q') {
 			jiggler = !jiggler;
+		} else if (buf[i] == 'k') {
+			spam_keyboard = !spam_keyboard;
 		}
 	}
 }
