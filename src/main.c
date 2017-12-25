@@ -46,12 +46,15 @@ const struct usb_device_descriptor dev_descr = {
 	.bNumConfigurations = 1,
 };
 
+// for descriptor format see http://eleccelerator.com/tutorial-about-usb-hid-report-descriptors/
 static const uint8_t hid_report_descriptor[] = {
 	0x05, 0x01, /* USAGE_PAGE (Generic Desktop)         */
 	0x09, 0x02, /* USAGE (Mouse)                        */
 	0xa1, 0x01, /* COLLECTION (Application)             */
 	0x09, 0x01, /*   USAGE (Pointer)                    */
 	0xa1, 0x00, /*   COLLECTION (Physical)              */
+
+	// Three buttons, each represented by a bit
 	0x05, 0x09, /*     USAGE_PAGE (Button)              */
 	0x19, 0x01, /*     USAGE_MINIMUM (Button 1)         */
 	0x29, 0x03, /*     USAGE_MAXIMUM (Button 3)         */
@@ -59,10 +62,14 @@ static const uint8_t hid_report_descriptor[] = {
 	0x25, 0x01, /*     LOGICAL_MAXIMUM (1)              */
 	0x95, 0x03, /*     REPORT_COUNT (3)                 */
 	0x75, 0x01, /*     REPORT_SIZE (1)                  */
+
+	// Padding 5 bits
 	0x81, 0x02, /*     INPUT (Data,Var,Abs)             */
 	0x95, 0x01, /*     REPORT_COUNT (1)                 */
 	0x75, 0x05, /*     REPORT_SIZE (5)                  */
 	0x81, 0x01, /*     INPUT (Cnst,Ary,Abs)             */
+
+	// X, Y, and wheel axes from +/-127
 	0x05, 0x01, /*     USAGE_PAGE (Generic Desktop)     */
 	0x09, 0x30, /*     USAGE (X)                        */
 	0x09, 0x31, /*     USAGE (Y)                        */
@@ -73,6 +80,7 @@ static const uint8_t hid_report_descriptor[] = {
 	0x95, 0x03, /*     REPORT_COUNT (3)                 */
 	0x81, 0x06, /*     INPUT (Data,Var,Rel)             */
 	0xc0,       /*   END_COLLECTION                     */
+
 	0x09, 0x3c, /*   USAGE (Motion Wakeup)              */
 	0x05, 0xff, /*   USAGE_PAGE (Vendor Defined Page 1) */
 	0x09, 0x01, /*   USAGE (Vendor Usage 1)             */
