@@ -12,6 +12,7 @@ LDFLAGS += $(OPT_FLAGS)
 
 SRC =			\
 	cdcacm.c	\
+	hid.c		\
 	main.c		\
 
 CROSS_COMPILE ?= arm-none-eabi-
