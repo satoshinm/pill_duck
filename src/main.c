@@ -203,6 +203,7 @@ void sys_tick_handler(void)
 	}
 
 	usbd_ep_write_packet(usbd_dev, 0x81, &report, len);
+	gpio_toggle(GPIOC, GPIO13);
 
 	report_index += 1;
 }
