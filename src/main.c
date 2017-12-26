@@ -119,8 +119,60 @@ static struct composite_report packets[1024] = {
 		.report_id = REPORT_ID_END,
 	},
 };
-
 static int report_index = 0;
+
+void reset_packet_buffer(void)
+{
+	packets[0].report_id = REPORT_ID_END;
+	report_index = 0;
+}
+
+void add_mouse_jiggler(int width)
+{
+	int j = report_index;
+	for (int i = 0; i < width; ++i) {
+		packets[j].report_id = REPORT_ID_MOUSE;
+		packets[j].mouse.buttons = 0;
+		packets[j].mouse.x = 1;
+		packets[j].mouse.y = 0;
+		packets[j].mouse.wheel = 0;
+		++j;
+	}
+
+	for (int i = 0; i < width; ++i) {
+		packets[j].report_id = REPORT_ID_MOUSE;
+		packets[j].mouse.buttons = 0;
+		packets[j].mouse.x = -1;
+		packets[j].mouse.y = 0;
+		packets[j].mouse.wheel = 0;
+		++j;
+	}
+
+	packets[j].report_id = REPORT_ID_END;
+
+	report_index = j;
+}
+
+void add_keyboard_spammer(int scancode)
+{
+	int j = report_index;
+
+	packets[j].report_id = REPORT_ID_KEYBOARD;
+	packets[j].keyboard.modifiers = 0;
+	packets[j].keyboard.reserved = 0;
+	packets[j].keyboard.keys_down[0] = scancode;
+	packets[j].keyboard.keys_down[1] = 0;
+	packets[j].keyboard.keys_down[2] = 0;
+	packets[j].keyboard.keys_down[3] = 0;
+	packets[j].keyboard.keys_down[4] = 0;
+	packets[j].keyboard.keys_down[5] = 0;
+	packets[j].keyboard.leds = 0;
+	++j;
+
+	packets[j].report_id = REPORT_ID_END;
+
+	report_index = j;
+}
 
 void sys_tick_handler(void)
 {
@@ -145,65 +197,6 @@ void sys_tick_handler(void)
 }
 
 
-#if 0
-int dir = 1;
-bool jiggler = true;
-bool spam_keyboard = true;
-void sys_tick_handler(void)
-{
-	static bool toggle = false;
-
-	if (jiggler && toggle) {
-		static int x = 0;
-		/*
-		uint8_t buf[5] = {0, 0, 0, 0, 0};
-
-		buf[0] = 2; // mouse
-		buf[2] = dir;
-		*/
-
-		struct composite_report report = {
-			.report_id = 2, // mouse
-			.mouse.buttons = 0,
-			.mouse.x = dir,
-			.mouse.y = 0,
-			.mouse.wheel = 0,
-		};
-
-		x += dir;
-		if (x > 30)
-			dir = -dir;
-		if (x < -30)
-			dir = -dir;
-		usbd_ep_write_packet(usbd_dev, 0x81, &report, 5);
-	}
-
-	if (spam_keyboard && !toggle) {
-		/*
-		uint8_t report[9] = {0};
-		report[0] = 1; // keyboard
-		report[1] = 0; // no modifiers down
-		report[2] = 0;
-		report[3] = 0x06; // 'c'
-		*/
-
-		struct composite_report report = {
-			.report_id = 1, // keyboard
-			.keyboard.modifiers = 0,
-			.keyboard.reserved = 0,
-			.keyboard.keys_down = {
-				0x06, // 'c'
-				0x00, 0x00, 0x00, 0x00, 0x00 },
-			.keyboard.leds = 0,
-		};
-
-		usbd_ep_write_packet(usbd_dev, 0x81, &report, 9);
-	}
-
-	toggle = !toggle;
-}
-#endif
-
 static void usb_set_config(usbd_device *dev, uint16_t wValue)
 {
 	hid_set_config(dev, wValue);
@@ -223,6 +216,8 @@ int main(void)
 		GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
 	gpio_set(GPIOC, GPIO13);
 
+	add_mouse_jiggler(30);
+	add_keyboard_spammer(6); // 'c'
 
 	usbd_dev = usbd_init(&st_usbfs_v1_usb_driver, &dev_descr, &config, usb_strings,
 		sizeof(usb_strings)/sizeof(char *),
