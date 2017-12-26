@@ -11,6 +11,7 @@ CFLAGS += -Wall -Wextra -Werror -Wno-char-subscripts\
 LDFLAGS += $(OPT_FLAGS)
 
 SRC =			\
+	cdcacm.c	\
 	main.c		\
 
 CROSS_COMPILE ?= arm-none-eabi-
