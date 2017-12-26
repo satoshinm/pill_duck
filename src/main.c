@@ -93,8 +93,6 @@ void sys_tick_handler(void)
 	static bool toggle = false;
 
 	if (jiggler && toggle) {
-		for (int i = 0; i < 1000000; ++i) asm("nop");
-
 		static int x = 0;
 		uint8_t buf[5] = {0, 0, 0, 0, 0};
 
