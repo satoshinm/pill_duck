@@ -82,8 +82,26 @@ static const char *usb_strings[] = {
 	"Pill Duck UART Port",
 };
 
-/* Buffer to be used for control requests. */
-uint8_t usbd_control_buffer[128];
+// Structure of HID report packets, must match hid_report_descriptor
+struct composite_report {
+	uint8_t report_id;
+	union {
+		struct {
+			uint8_t buttons;
+			uint8_t x;
+			uint8_t y;
+			uint8_t wheel;
+		} __attribute__((packed)) mouse;
+
+		struct {
+			uint8_t modifiers;
+			uint8_t reserved;
+			uint8_t keys_down[6];
+			uint8_t leds;
+		} __attribute__((packed)) keyboard;
+	};
+} __attribute__((packed));
+
 
 int dir = 1;
 bool jiggler = true;
@@ -94,26 +112,49 @@ void sys_tick_handler(void)
 
 	if (jiggler && toggle) {
 		static int x = 0;
+		/*
 		uint8_t buf[5] = {0, 0, 0, 0, 0};
 
 		buf[0] = 2; // mouse
 		buf[2] = dir;
+		*/
+
+		struct composite_report report = {
+			.report_id = 2, // mouse
+			.mouse.buttons = 0,
+			.mouse.x = dir,
+			.mouse.y = 0,
+			.mouse.wheel = 0,
+		};
 
 		x += dir;
 		if (x > 30)
 			dir = -dir;
 		if (x < -30)
 			dir = -dir;
-		usbd_ep_write_packet(usbd_dev, 0x81, buf, sizeof(buf));
+		usbd_ep_write_packet(usbd_dev, 0x81, &report, 5);
 	}
 
 	if (spam_keyboard && !toggle) {
+		/*
 		uint8_t report[9] = {0};
 		report[0] = 1; // keyboard
 		report[1] = 0; // no modifiers down
 		report[2] = 0;
 		report[3] = 0x06; // 'c'
-		usbd_ep_write_packet(usbd_dev, 0x81, report, sizeof(report));
+		*/
+
+		struct composite_report report = {
+			.report_id = 1, // keyboard
+			.keyboard.modifiers = 0,
+			.keyboard.reserved = 0,
+			.keyboard.keys_down = {
+				0x06, // 'c'
+				0x00, 0x00, 0x00, 0x00, 0x00 },
+			.keyboard.leds = 0,
+		};
+
+		usbd_ep_write_packet(usbd_dev, 0x81, &report, 9);
 	}
 
 	toggle = !toggle;
@@ -124,6 +165,9 @@ static void usb_set_config(usbd_device *dev, uint16_t wValue)
 	hid_set_config(dev, wValue);
 	cdcacm_set_config(dev, wValue);
 }
+
+/* Buffer to be used for control requests. */
+uint8_t usbd_control_buffer[128];
 
 
 int main(void)
