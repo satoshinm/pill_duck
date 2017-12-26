@@ -138,6 +138,53 @@ void add_keyboard_spammer(int scancode)
 	report_index = j;
 }
 
+// see: https://github.com/hak5darren/USB-Rubber-Ducky/blob/33a834b0e19f9d4f995432eb9dbcccb247c2e4df/Firmware/Source/Ducky_HID/src/main.c#L143
+void add_ducky_binary(uint8_t *buf, int len)
+{
+	int j = report_index;
+
+	// 16-bit words, must be even
+	if ((len % 2) != 0) len -= 1;
+
+	for (int i = 0; i < len; i += 2) {
+		uint16_t word = buf[i] | (buf[i + 1] << 8);
+
+		if ((word & 0xff) == 0) {
+			// TODO: wait
+		}
+
+		// Press key and modifier
+		packets[j].report_id = REPORT_ID_KEYBOARD;
+		packets[j].keyboard.modifiers = word >> 8;
+		packets[j].keyboard.reserved = 1;
+		packets[j].keyboard.keys_down[0] = word & 0xff;
+		packets[j].keyboard.keys_down[1] = 0;
+		packets[j].keyboard.keys_down[2] = 0;
+		packets[j].keyboard.keys_down[3] = 0;
+		packets[j].keyboard.keys_down[4] = 0;
+		packets[j].keyboard.keys_down[5] = 0;
+		packets[j].keyboard.leds = 0;
+		++j;
+
+		// Release key
+		packets[j].report_id = REPORT_ID_KEYBOARD;
+		packets[j].keyboard.modifiers = 0;
+		packets[j].keyboard.reserved = 1;
+		packets[j].keyboard.keys_down[0] = 0;
+		packets[j].keyboard.keys_down[1] = 0;
+		packets[j].keyboard.keys_down[2] = 0;
+		packets[j].keyboard.keys_down[3] = 0;
+		packets[j].keyboard.keys_down[4] = 0;
+		packets[j].keyboard.keys_down[5] = 0;
+		packets[j].keyboard.leds = 0;
+		++j;
+	}
+
+	packets[j].report_id = REPORT_ID_END;
+
+	report_index = j;
+}
+
 void sys_tick_handler(void)
 {
 	struct composite_report report = packets[report_index];
@@ -180,8 +227,10 @@ int main(void)
 		GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
 	gpio_set(GPIOC, GPIO13);
 
-	add_mouse_jiggler(30);
-	add_keyboard_spammer(6); // 'c'
+	//add_mouse_jiggler(30);
+	//add_keyboard_spammer(6); // 'c'
+
+	add_ducky_binary((uint8_t *)"\x07\x02\x07\x00\x07\x00\x08\x00", 8);
 
 	usbd_dev = usbd_init(&st_usbfs_v1_usb_driver, &dev_descr, &config, usb_strings,
 		sizeof(usb_strings)/sizeof(char *),
