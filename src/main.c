@@ -82,43 +82,7 @@ static const char *usb_strings[] = {
 	"Pill Duck UART Port",
 };
 
-// Structure of HID report packets, must match hid_report_descriptor
-#define REPORT_ID_KEYBOARD	1
-#define REPORT_ID_MOUSE		2
-struct composite_report {
-	uint8_t report_id;
-	union {
-		struct {
-			uint8_t buttons;
-			uint8_t x;
-			uint8_t y;
-			uint8_t wheel;
-		} __attribute__((packed)) mouse;
-
-		struct {
-			uint8_t modifiers;
-			uint8_t reserved;
-			uint8_t keys_down[6];
-			uint8_t leds;
-		} __attribute__((packed)) keyboard;
-	};
-} __attribute__((packed));
-
-#define REPORT_ID_NOP		0
-#define REPORT_ID_END		255
-
-static struct composite_report packets[1024] = {
-	{
-		.report_id = REPORT_ID_KEYBOARD,
-		.keyboard.modifiers = 0,
-		.keyboard.reserved = 0,
-		.keyboard.keys_down = { 6 /* 'c' */, 0, 0, 0, 0, 0 },
-		.keyboard.leds = 0,
-	},
-	{
-		.report_id = REPORT_ID_END,
-	},
-};
+static struct composite_report packets[1024] = {0};
 static int report_index = 0;
 
 void reset_packet_buffer(void)
