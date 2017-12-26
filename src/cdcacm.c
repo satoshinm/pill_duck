@@ -172,9 +172,11 @@ static int cdcacm_control_request(usbd_device *dev,
 	return 0;
 }
 
+/*
 extern int dir;
 extern bool jiggler;
 extern bool spam_keyboard;
+*/
 
 static void usbuart_usb_out_cb(usbd_device *dev, uint8_t ep)
 {
@@ -187,6 +189,7 @@ static void usbuart_usb_out_cb(usbd_device *dev, uint8_t ep)
 
 	for(int i = 0; i < len; i++) {
 		gpio_toggle(GPIOC, GPIO13);
+		/*
 		if (buf[i] == 'a') {
 			dir = -1;
 			jiggler = false;
@@ -204,6 +207,7 @@ static void usbuart_usb_out_cb(usbd_device *dev, uint8_t ep)
 		} else if (buf[i] == 'k') {
 			spam_keyboard = !spam_keyboard;
 		}
+		*/
 	}
 }
 

@@ -83,6 +83,8 @@ static const char *usb_strings[] = {
 };
 
 // Structure of HID report packets, must match hid_report_descriptor
+#define REPORT_ID_KEYBOARD	1
+#define REPORT_ID_MOUSE		2
 struct composite_report {
 	uint8_t report_id;
 	union {
@@ -102,7 +104,48 @@ struct composite_report {
 	};
 } __attribute__((packed));
 
+#define REPORT_ID_NOP		0
+#define REPORT_ID_END		255
 
+static struct composite_report packets[1024] = {
+	{
+		.report_id = REPORT_ID_KEYBOARD,
+		.keyboard.modifiers = 0,
+		.keyboard.reserved = 0,
+		.keyboard.keys_down = { 6 /* 'c' */, 0, 0, 0, 0, 0 },
+		.keyboard.leds = 0,
+	},
+	{
+		.report_id = REPORT_ID_END,
+	},
+};
+
+static int report_index = 0;
+
+void sys_tick_handler(void)
+{
+	struct composite_report report = packets[report_index];
+	uint16_t len = 0;
+	uint8_t id = report.report_id;
+
+	if (id == REPORT_ID_NOP) {
+		return;
+	} else if (id == REPORT_ID_KEYBOARD) {
+		len = 9;
+	} else if (id == REPORT_ID_MOUSE) {
+		len = 5;
+	} else {
+		report_index = 0;
+		return;
+	}
+
+	usbd_ep_write_packet(usbd_dev, 0x81, &report, len);
+
+	report_index += 1;
+}
+
+
+#if 0
 int dir = 1;
 bool jiggler = true;
 bool spam_keyboard = true;
@@ -159,6 +202,7 @@ void sys_tick_handler(void)
 
 	toggle = !toggle;
 }
+#endif
 
 static void usb_set_config(usbd_device *dev, uint16_t wValue)
 {
