@@ -263,10 +263,13 @@ char *process_serial_command(char *buf, int len) {
 			return "error writing flash";
 		}
 	} else if (buf[0] == 'r') {
-		static char binary[128] = {0};
+		char binary[16] = {0};
 		memset(binary, 0, sizeof(binary));
-		flash_read_data(0, 16, (uint8_t *)&binary);
-		return (char *)&binary;
+		flash_read_data(0, sizeof(binary), (uint8_t *)&binary);
+
+		static char hex[32] = {0};
+		hexify(hex, (const char *)binary, sizeof(binary));
+		return hex;
 	} else if (buf[0] == '@') {
 		static char hex[16] = {0};
 		// TODO: show in decimal and correct endian
