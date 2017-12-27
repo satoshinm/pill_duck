@@ -29,7 +29,7 @@
 
 
 #define FLASH_PAGE_NUM_MAX 127
-#define FLASH_PAGE_SIZE 0x800
+#define FLASH_PAGE_SIZE 0x400
 
 // thanks to: https://github.com/libopencm3/libopencm3-examples/blob/master/examples/stm32/f1/stm32-h107/flash_rw_example/flash_rw_example.c
 
