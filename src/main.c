@@ -244,6 +244,7 @@ char *process_serial_command(char *buf, int len) {
 			"@\tshow current report index\r\n"
 			"p\tpause/resume execution\r\n"
 			"s\tsingle step execution\r\n"
+			"z\treset report index to zero\r\n"
 			;
 	*/
 	} else if (buf[0] == 'w') {
@@ -278,6 +279,8 @@ char *process_serial_command(char *buf, int len) {
 	} else if (buf[0] == 's') {
 		single_step = true;
 		return "step";
+	} else if (buf[0] == 'z') {
+		report_index = 0;
 	} else {
 		return "invalid command, try ? for help";
 	}
