@@ -228,6 +228,11 @@ static void usb_set_config(usbd_device *dev, uint16_t wValue)
 	cdcacm_set_config(dev, wValue);
 }
 
+// Section of flash memory for storing the user payload data - this should match the
+// size defined in the .ld linker script file. Points directly to flash, see below for writing.
+__attribute__((__section__(".user_data"))) const struct composite_report
+	user_data[sizeof(struct composite_report) / (128 - 8) * 1024];
+
 
 char *process_serial_command(char *buf, int len) {
 	(void) len;
@@ -254,7 +259,7 @@ char *process_serial_command(char *buf, int len) {
 
 		unhexify(binary, &buf[1], len);
 
-		int result = flash_program_data(0, (uint8_t *)binary, binary_words);
+		int result = flash_program_data((uint32_t)&user_data, (uint8_t *)binary, binary_words);
 		if (result == RESULT_OK) {
 			return "wrote flash";
 		} else if (result == FLASH_WRONG_DATA_WRITTEN) {
@@ -265,7 +270,7 @@ char *process_serial_command(char *buf, int len) {
 	} else if (buf[0] == 'r') {
 		char binary[16] = {0};
 		memset(binary, 0, sizeof(binary));
-		flash_read_data(0, sizeof(binary), (uint8_t *)&binary);
+		flash_read_data((uint32_t)&user_data, sizeof(binary), (uint8_t *)&binary);
 
 		static char hex[32] = {0};
 		hexify(hex, (const char *)binary, sizeof(binary));
