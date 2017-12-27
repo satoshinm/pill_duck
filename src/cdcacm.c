@@ -174,13 +174,7 @@ static int cdcacm_control_request(usbd_device *dev,
 	return 0;
 }
 
-static char *process_serial_command(char *buf, int len) {
-	(void) len;
-
-	if (buf[0] == 'v') return "version " FIRMWARE_VERSION "\r\n";
-
-	return "";
-}
+extern char *process_serial_command(char *buf, int len);
 
 static void usbuart_usb_out_cb(usbd_device *dev, uint8_t ep)
 {

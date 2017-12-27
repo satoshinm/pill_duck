@@ -19,6 +19,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/stm32/rcc.h>
@@ -29,6 +30,9 @@
 
 #include "cdcacm.h"
 #include "hid.h"
+#include "hex_utils.h"
+#include "version.h"
+#include "flash.h"
 
 static usbd_device *usbd_dev;
 
@@ -217,12 +221,48 @@ static void usb_set_config(usbd_device *dev, uint16_t wValue)
 	cdcacm_set_config(dev, wValue);
 }
 
+
+char *process_serial_command(char *buf, int len) {
+	(void) len;
+
+	if (buf[0] == 'v') {
+		return "version " FIRMWARE_VERSION "\r\n";
+	} else if (buf[0] == '?') {
+		return "help:\r\n"
+			"?\tshow this help\r\n"
+			"v\tshow firmware version\r\n"
+			"w<hex>\twrite flash data\r\n"
+			"r\tread flash data\r\n"
+			;
+	} else if (buf[0] == 'w') {
+		char binary[128] = {0};
+		int binary_len = len / 2;
+		int binary_words = binary_len / 2 + 1;
+
+		unhexify(binary, &buf[1], len);
+
+		int result = flash_program_data(0, (uint8_t *)binary, binary_words);
+		if (result == RESULT_OK) {
+			return "wrote flash\r\n";
+		} else if (result == FLASH_WRONG_DATA_WRITTEN) {
+			return "wrong data written\r\n";
+		} else {
+			return "error writing flash\r\n";
+		}
+	} else if (buf[0] == 'r') {
+		static char binary[128] = {0};
+		memset(binary, 0, sizeof(binary));
+		flash_read_data(0, 16, (uint8_t *)&binary);
+		return (char *)&binary;
+	} else {
+		return "invalid command, try ? for help\r\n";
+	}
+
+	return "";
+}
+
 /* Buffer to be used for control requests. */
 uint8_t usbd_control_buffer[128];
-
-// Section of flash memory for storing the user payload data - this should match the
-// size defined in the .ld linker script file. Not initialized by default.
-__attribute__((__section__(".user_data"))) const uint8_t user_data[(128 - 8) * 1024];
 
 int main(void)
 {
@@ -244,8 +284,6 @@ int main(void)
 		"\x00\xff\x00\xff\x00\xff\x00\xeb\x0b\x02\x08\x00\x0f\x00\x0f\x00"
 		"\x12\x00\x36\x00\x2c\x00\x1a\x00\x12\x00\x15\x00\x0f\x00\x07\x00"
 		"\x1e\x02\x00\xff\x00\xf5\x28\x00", 36);
-
-	add_ducky_binary((uint8_t *)user_data, 16);
 
 	usbd_dev = usbd_init(&st_usbfs_v1_usb_driver, &dev_descr, &config, usb_strings,
 		sizeof(usb_strings)/sizeof(char *),

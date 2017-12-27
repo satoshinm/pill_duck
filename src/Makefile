@@ -14,6 +14,7 @@ SRC =			\
 	cdcacm.c	\
 	hid.c		\
 	hex_utils.c	\
+	flash.c		\
 	main.c		\
 
 CROSS_COMPILE ?= arm-none-eabi-
