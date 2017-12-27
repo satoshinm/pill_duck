@@ -198,6 +198,7 @@ int convert_ducky_binary(uint8_t *buf, int len, struct composite_report *out)
 	}
 
 	out[j].report_id = REPORT_ID_END;
+	++j;
 
 	return j;
 }
@@ -263,18 +264,17 @@ char *process_serial_command(char *buf, int len) {
 	} else if (buf[0] == 'w' || buf[0] == 'd') {
 		char binary[128] = {0};
 		int binary_len = len / 2;
-		int binary_words = binary_len / 2 + 1;
 		uint8_t *to_write = (uint8_t *)&binary;
 
 		unhexify(binary, &buf[1], len);
 
 		if (buf[0] == 'd') {
 			int records = convert_ducky_binary((uint8_t *)binary, binary_len, packet_buffer);
-			binary_words = records * sizeof(struct composite_report) / 2;
+			binary_len = records * sizeof(struct composite_report);
 			to_write = (uint8_t *)&packet_buffer;
 		}
 
-		int result = flash_program_data((uint32_t)&user_data, to_write, binary_words);
+		int result = flash_program_data((uint32_t)&user_data, to_write, binary_len);
 		if (result == RESULT_OK) {
 			return "wrote flash";
 		} else if (result == FLASH_WRONG_DATA_WRITTEN) {
