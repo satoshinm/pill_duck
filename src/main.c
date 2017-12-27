@@ -236,7 +236,7 @@ char *process_serial_command(char *buf, int len) {
 			"w<hex>\twrite flash data\r\n"
 			"r\tread flash data\r\n"
 			"@\tshow current report index\r\n"
-			"s\tstart/stop execution\r\n"
+			"p\tpause/resume execution\r\n"
 			;
 	*/
 	} else if (buf[0] == 'w') {
@@ -264,10 +264,10 @@ char *process_serial_command(char *buf, int len) {
 		// TODO: show in decimal and correct endian
 		hexify(hex, (const char *)&report_index, sizeof(report_index));
 		return hex;
-	} else if (buf[0] == 's') {
+	} else if (buf[0] == 'p') {
 		paused = !paused;
-		if (paused) return "stopped\r\n";
-		else return "started\r\n";
+		if (paused) return "paused\r\n";
+		else return "resumed\r\n";
 	} else {
 		return "invalid command, try ? for help\r\n";
 	}
