@@ -31,7 +31,7 @@
 #include "version.h"
 
 /* Serial ACM interface */
-#define CDCACM_PACKET_SIZE 	64
+#define CDCACM_PACKET_SIZE 	128
 #define CDCACM_UART_ENDPOINT	0x03
 #define CDCACM_INTR_ENDPOINT	0x84
 
@@ -204,8 +204,10 @@ static void usbuart_usb_out_cb(usbd_device *dev, uint8_t ep)
 		if (buf[i] == '\r' || buf[i] == '\n') {
 			char *response = process_serial_command(typing_buf, typing_index);
 			typing_index = 0;
+			size_t response_len = strlen(response);
+			if (response_len > 50) response_len = 50;
 
-			for (size_t k = 0; k < strlen(response); ++k) {
+			for (size_t k = 0; k < response_len; ++k) {
 				reply_buf[j++] = response[k];
 			}
 
