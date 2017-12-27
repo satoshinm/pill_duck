@@ -1,0 +1,14 @@
+{
+  "name": "hid_report_decoder",
+  "version": "0.0.1",
+  "description": "Decode common USB HID formats for mice and keyboards",
+  "main": "hid.js",
+  "repository": "https://github.com/satoshinm/pill_duck",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "tape": "^4.8.0"
+  }
+}
