@@ -80,9 +80,9 @@ const struct usb_config_descriptor config = {
 };
 
 static const char *usb_strings[] = {
-	"Black Sphere Technologies",
-	"HID Demo",
-	"DEMO",
+	"satoshinm",
+	"Pill Duck",
+	"ABC",
 	"Pill Duck UART Port",
 };
 
@@ -246,7 +246,7 @@ char *process_serial_command(char *buf, int len) {
 	(void) len;
 
 	if (buf[0] == 'v') {
-		return "version " FIRMWARE_VERSION;
+		return "Pill Duck version " FIRMWARE_VERSION;
 	/* TODO: help, but too big for one packet
 	} else if (buf[0] == '?') {
 		return "help:\r\n"
