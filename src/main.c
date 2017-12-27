@@ -142,6 +142,7 @@ int convert_ducky_binary(uint8_t *buf, int len, struct composite_report *out)
 
 		if ((word & 0xff) == 0) {
 			// TODO: wait
+			continue;
 		}
 
 		// Press key and modifier
