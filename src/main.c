@@ -87,7 +87,7 @@ static const char *usb_strings[] = {
 };
 
 static struct composite_report packets[1024] = {0};
-static int report_index = 0;
+static uint32_t report_index = 0;
 
 void reset_packet_buffer(void)
 {
@@ -189,9 +189,11 @@ void add_ducky_binary(uint8_t *buf, int len)
 	report_index = j;
 }
 
+static bool paused = true;
 void sys_tick_handler(void)
 {
-#if 0 // TODO
+	if (paused) return;
+
 	struct composite_report report = packets[report_index];
 	uint16_t len = 0;
 	uint8_t id = report.report_id;
@@ -211,7 +213,6 @@ void sys_tick_handler(void)
 	gpio_toggle(GPIOC, GPIO13);
 
 	report_index += 1;
-#endif
 }
 
 
@@ -227,13 +228,17 @@ char *process_serial_command(char *buf, int len) {
 
 	if (buf[0] == 'v') {
 		return "version " FIRMWARE_VERSION "\r\n";
+	/* TODO: help, but too big for one packet
 	} else if (buf[0] == '?') {
 		return "help:\r\n"
 			"?\tshow this help\r\n"
 			"v\tshow firmware version\r\n"
 			"w<hex>\twrite flash data\r\n"
 			"r\tread flash data\r\n"
+			"@\tshow current report index\r\n"
+			"s\tstart/stop execution\r\n"
 			;
+	*/
 	} else if (buf[0] == 'w') {
 		char binary[128] = {0};
 		int binary_len = len / 2;
@@ -254,6 +259,15 @@ char *process_serial_command(char *buf, int len) {
 		memset(binary, 0, sizeof(binary));
 		flash_read_data(0, 16, (uint8_t *)&binary);
 		return (char *)&binary;
+	} else if (buf[0] == '@') {
+		static char hex[16] = {0};
+		// TODO: show in decimal and correct endian
+		hexify(hex, (const char *)&report_index, sizeof(report_index));
+		return hex;
+	} else if (buf[0] == 's') {
+		paused = !paused;
+		if (paused) return "stopped\r\n";
+		else return "started\r\n";
 	} else {
 		return "invalid command, try ? for help\r\n";
 	}
