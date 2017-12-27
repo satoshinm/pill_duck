@@ -62,4 +62,13 @@ function splitReports(bufs) {
   return array;
 }
 
-module.exports = {decode, splitReports, encode};
+function decodeAll(buf) {
+  const array = splitReports(buf);
+  const result = [];
+  array.forEach((buf) => {
+    result.push(decode(buf));
+  });
+  return result;
+}
+
+module.exports = {decode, splitReports, encode, decodeAll};

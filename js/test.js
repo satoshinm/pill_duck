@@ -1,7 +1,7 @@
 'use strict';
 
 const test = require('tape');
-const {decode, splitReports, encode} = require('./hid.js');
+const {decode, splitReports, encode, decodeAll} = require('./');
 
 test('decode mouse', (t) => {
   const buf = new Buffer("0200010000", "hex");
@@ -48,7 +48,7 @@ test('decode hello world', (t) => {
 "01000100000000000000000000000000"+
 "ff000000000000000000000000000000", "hex");
 
-  const expecteds = [
+  const expected = [
 { report_id: 1, modifiers: 2, reserved: 1, keys_down: [ 11, 0, 0, 0, 0, 0 ], leds: 0 },
 { report_id: 1, modifiers: 0, reserved: 1, keys_down: [ 0, 0, 0, 0, 0, 0 ], leds: 0 },
 { report_id: 1, modifiers: 0, reserved: 1, keys_down: [ 8, 0, 0, 0, 0, 0 ], leds: 0 },
@@ -75,13 +75,7 @@ test('decode hello world', (t) => {
 { report_id: 1, modifiers: 0, reserved: 1, keys_down: [ 0, 0, 0, 0, 0, 0 ], leds: 0 },
 { report_id: 255 }];
 
-  const array = splitReports(bufs);
-
-  let i = 0;
-  array.forEach((buf) => {
-    t.deepEqual(decode(buf), expecteds[i]);
-    ++i;
-  });
+  t.deepEqual(decodeAll(bufs), expected);
   t.end();
 });
 

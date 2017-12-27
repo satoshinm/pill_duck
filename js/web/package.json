@@ -1,0 +1,17 @@
+{
+  "name": "hid_report_decoder-web",
+  "version": "0.0.1",
+  "description": "Web-based decode common USB HID formats for mice and keyboards",
+  "main": "hid.js",
+  "repository": "https://github.com/satoshinm/pill_duck",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "license": "MIT",
+  "scripts": {
+      "webpack": "webpack web.js bundle.js"
+  },
+  "devDependencies": {
+    "webpack": "^3.10.0"
+  }
+}
