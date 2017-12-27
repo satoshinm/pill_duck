@@ -218,6 +218,9 @@ static void usb_set_config(usbd_device *dev, uint16_t wValue)
 /* Buffer to be used for control requests. */
 uint8_t usbd_control_buffer[128];
 
+// Section of flash memory for storing the user payload data - this should match the
+// size defined in the .ld linker script file. Not initialized by default.
+__attribute__((__section__(".user_data"))) const uint8_t user_data[(128 - 8) * 1024];
 
 int main(void)
 {

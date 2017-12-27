@@ -20,8 +20,20 @@
 /* Define memory regions. */
 MEMORY
 {
-	rom (rx) : ORIGIN = 0x08000000, LENGTH =  128K
+	rom (rx)   : ORIGIN = 0x08000000, LENGTH =  8K
+	data (rwx) : ORIGIN = 0x08002000, LENGTH =  128K-8K
+
 	ram (rwx) : ORIGIN = 0x20000000, LENGTH = 20K
+}
+
+SECTIONS
+{
+	.user_data (NOLOAD) :
+	{
+		. = ALIGN(4);
+			*(.user_data)
+		. = ALIGN(4);
+	} > data
 }
 
 /* Include the common ld script from libopenstm32. */
