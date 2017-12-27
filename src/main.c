@@ -95,8 +95,8 @@ __attribute__((__section__(".user_data"))) const struct composite_report
 
 
 // RAM to temporarily store composite reports when converting, before writing to flash above
-// TODO: eliminate/reduce need for this, RAM (20 KB) is much smaller than flash (64-128 KB)
-static struct composite_report packet_buffer[1024] = {0};
+// This fits one flash page (1 KB)
+static struct composite_report packet_buffer[1024 / sizeof(struct composite_report)] = {0};
 
 
 /*
