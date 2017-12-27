@@ -190,9 +190,10 @@ void add_ducky_binary(uint8_t *buf, int len)
 }
 
 static bool paused = true;
+static bool single_step = false;
 void sys_tick_handler(void)
 {
-	if (paused) return;
+	if (paused && !single_step) return;
 
 	struct composite_report report = packets[report_index];
 	uint16_t len = 0;
@@ -211,6 +212,11 @@ void sys_tick_handler(void)
 
 	usbd_ep_write_packet(usbd_dev, 0x81, &report, len);
 	gpio_toggle(GPIOC, GPIO13);
+
+	if (single_step) {
+		single_step = false;
+		paused = true;
+	}
 
 	report_index += 1;
 }
@@ -237,6 +243,7 @@ char *process_serial_command(char *buf, int len) {
 			"r\tread flash data\r\n"
 			"@\tshow current report index\r\n"
 			"p\tpause/resume execution\r\n"
+			"s\tsingle step execution\r\n"
 			;
 	*/
 	} else if (buf[0] == 'w') {
@@ -268,6 +275,9 @@ char *process_serial_command(char *buf, int len) {
 		paused = !paused;
 		if (paused) return "paused\r\n";
 		else return "resumed\r\n";
+	} else if (buf[0] == 's') {
+		single_step = true;
+		return "step\r\n";
 	} else {
 		return "invalid command, try ? for help\r\n";
 	}
