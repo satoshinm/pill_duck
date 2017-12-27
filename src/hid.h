@@ -25,6 +25,8 @@ struct composite_report {
 			uint8_t keys_down[6];
 			uint8_t leds;
 		} __attribute__((packed)) keyboard;
+
+		uint8_t padding[16];
 	};
 } __attribute__((packed));
 
