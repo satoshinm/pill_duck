@@ -233,7 +233,7 @@ char *process_serial_command(char *buf, int len) {
 	(void) len;
 
 	if (buf[0] == 'v') {
-		return "version " FIRMWARE_VERSION "\r\n";
+		return "version " FIRMWARE_VERSION;
 	/* TODO: help, but too big for one packet
 	} else if (buf[0] == '?') {
 		return "help:\r\n"
@@ -255,11 +255,11 @@ char *process_serial_command(char *buf, int len) {
 
 		int result = flash_program_data(0, (uint8_t *)binary, binary_words);
 		if (result == RESULT_OK) {
-			return "wrote flash\r\n";
+			return "wrote flash";
 		} else if (result == FLASH_WRONG_DATA_WRITTEN) {
-			return "wrong data written\r\n";
+			return "wrong data written";
 		} else {
-			return "error writing flash\r\n";
+			return "error writing flash";
 		}
 	} else if (buf[0] == 'r') {
 		static char binary[128] = {0};
@@ -273,13 +273,13 @@ char *process_serial_command(char *buf, int len) {
 		return hex;
 	} else if (buf[0] == 'p') {
 		paused = !paused;
-		if (paused) return "paused\r\n";
-		else return "resumed\r\n";
+		if (paused) return "paused";
+		else return "resumed";
 	} else if (buf[0] == 's') {
 		single_step = true;
-		return "step\r\n";
+		return "step";
 	} else {
-		return "invalid command, try ? for help\r\n";
+		return "invalid command, try ? for help";
 	}
 
 	return "";
