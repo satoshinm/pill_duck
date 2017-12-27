@@ -187,6 +187,7 @@ void add_ducky_binary(uint8_t *buf, int len)
 
 void sys_tick_handler(void)
 {
+#if 0 // TODO
 	struct composite_report report = packets[report_index];
 	uint16_t len = 0;
 	uint8_t id = report.report_id;
@@ -206,6 +207,7 @@ void sys_tick_handler(void)
 	gpio_toggle(GPIOC, GPIO13);
 
 	report_index += 1;
+#endif
 }
 
 
@@ -242,6 +244,8 @@ int main(void)
 		"\x00\xff\x00\xff\x00\xff\x00\xeb\x0b\x02\x08\x00\x0f\x00\x0f\x00"
 		"\x12\x00\x36\x00\x2c\x00\x1a\x00\x12\x00\x15\x00\x0f\x00\x07\x00"
 		"\x1e\x02\x00\xff\x00\xf5\x28\x00", 36);
+
+	add_ducky_binary((uint8_t *)user_data, 16);
 
 	usbd_dev = usbd_init(&st_usbfs_v1_usb_driver, &dev_descr, &config, usb_strings,
 		sizeof(usb_strings)/sizeof(char *),
