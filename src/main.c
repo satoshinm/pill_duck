@@ -106,32 +106,6 @@ void reset_packet_buffer(void)
 	report_index = 0;
 }
 
-void add_mouse_jiggler(int width)
-{
-	int j = report_index;
-	for (int i = 0; i < width; ++i) {
-		packets[j].report_id = REPORT_ID_MOUSE;
-		packets[j].mouse.buttons = 0;
-		packets[j].mouse.x = 1;
-		packets[j].mouse.y = 0;
-		packets[j].mouse.wheel = 0;
-		++j;
-	}
-
-	for (int i = 0; i < width; ++i) {
-		packets[j].report_id = REPORT_ID_MOUSE;
-		packets[j].mouse.buttons = 0;
-		packets[j].mouse.x = -1;
-		packets[j].mouse.y = 0;
-		packets[j].mouse.wheel = 0;
-		++j;
-	}
-
-	packets[j].report_id = REPORT_ID_END;
-
-	report_index = j;
-}
-
 void add_keyboard_spammer(int scancode)
 {
 	int j = report_index;
@@ -242,18 +216,47 @@ static void usb_set_config(usbd_device *dev, uint16_t wValue)
 	cdcacm_set_config(dev, wValue);
 }
 
+int add_mouse_jiggler(int width)
+{
+	int j = 0;
+	for (int i = 0; i < width; ++i) {
+		packet_buffer[j].report_id = REPORT_ID_MOUSE;
+		packet_buffer[j].mouse.buttons = 0;
+		packet_buffer[j].mouse.x = 1;
+		packet_buffer[j].mouse.y = 0;
+		packet_buffer[j].mouse.wheel = 0;
+		++j;
+	}
+
+	for (int i = 0; i < width; ++i) {
+		packet_buffer[j].report_id = REPORT_ID_MOUSE;
+		packet_buffer[j].mouse.buttons = 0;
+		packet_buffer[j].mouse.x = -1;
+		packet_buffer[j].mouse.y = 0;
+		packet_buffer[j].mouse.wheel = 0;
+		++j;
+	}
+
+	packet_buffer[j].report_id = REPORT_ID_END;
+	++j;
+
+	return j;
+}
+
 char *process_serial_command(char *buf, int len) {
 	(void) len;
 
 	if (buf[0] == 'v') {
 		return "Pill Duck version " FIRMWARE_VERSION;
-	/* TODO: help, but too big for one packet
 	} else if (buf[0] == '?') {
+		return "see source code for help";
+	/* TODO: help, but too big for one packet
 		return "help:\r\n"
 			"?\tshow this help\r\n"
 			"v\tshow firmware version\r\n"
 			"w<hex>\twrite flash data\r\n"
 			"d<hex>\twrite compiled DuckyScript flash data\r\n"
+			"j\twrite mouse jiggler to flash data\r\n"
 			"r\tread flash data\r\n"
 			"@\tshow current report index\r\n"
 			"p\tpause/resume execution\r\n"
@@ -275,6 +278,18 @@ char *process_serial_command(char *buf, int len) {
 		}
 
 		int result = flash_program_data((uint32_t)&user_data, to_write, binary_len);
+		if (result == RESULT_OK) {
+			return "wrote flash";
+		} else if (result == FLASH_WRONG_DATA_WRITTEN) {
+			return "wrong data written";
+		} else {
+			return "error writing flash";
+		}
+	} else if (buf[0] == 'j') {
+		int records = add_mouse_jiggler(30);
+		int binary_len = records * sizeof(struct composite_report);
+
+		int result = flash_program_data((uint32_t)&user_data, (uint8_t *)&packet_buffer, binary_len);
 		if (result == RESULT_OK) {
 			return "wrote flash";
 		} else if (result == FLASH_WRONG_DATA_WRITTEN) {
