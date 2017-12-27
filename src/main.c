@@ -86,9 +86,20 @@ static const char *usb_strings[] = {
 	"Pill Duck UART Port",
 };
 
-static struct composite_report packets[1024] = {0};
 static uint32_t report_index = 0;
 
+// Section of flash memory for storing the user payload data - this should match the
+// size defined in the .ld linker script file. Points directly to flash, see below for writing.
+__attribute__((__section__(".user_data"))) const struct composite_report
+	user_data[sizeof(struct composite_report) / (128 - 8) * 1024];
+
+
+// RAM to temporarily store composite reports when converting, before writing to flash above
+// TODO: eliminate/reduce need for this, RAM (20 KB) is much smaller than flash (64-128 KB)
+static struct composite_report packet_buffer[1024] = {0};
+
+
+/*
 void reset_packet_buffer(void)
 {
 	packets[0].report_id = REPORT_ID_END;
@@ -141,11 +152,13 @@ void add_keyboard_spammer(int scancode)
 
 	report_index = j;
 }
+*/
 
+// Convert a compiled DuckyScript code to USB HID reports
 // see: https://github.com/hak5darren/USB-Rubber-Ducky/blob/33a834b0e19f9d4f995432eb9dbcccb247c2e4df/Firmware/Source/Ducky_HID/src/main.c#L143
-void add_ducky_binary(uint8_t *buf, int len)
+int convert_ducky_binary(uint8_t *buf, int len, struct composite_report *out)
 {
-	int j = report_index;
+	int j = 0;
 
 	// 16-bit words, must be even
 	if ((len % 2) != 0) len -= 1;
@@ -158,35 +171,35 @@ void add_ducky_binary(uint8_t *buf, int len)
 		}
 
 		// Press key and modifier
-		packets[j].report_id = REPORT_ID_KEYBOARD;
-		packets[j].keyboard.modifiers = word >> 8;
-		packets[j].keyboard.reserved = 1;
-		packets[j].keyboard.keys_down[0] = word & 0xff;
-		packets[j].keyboard.keys_down[1] = 0;
-		packets[j].keyboard.keys_down[2] = 0;
-		packets[j].keyboard.keys_down[3] = 0;
-		packets[j].keyboard.keys_down[4] = 0;
-		packets[j].keyboard.keys_down[5] = 0;
-		packets[j].keyboard.leds = 0;
+		out[j].report_id = REPORT_ID_KEYBOARD;
+		out[j].keyboard.modifiers = word >> 8;
+		out[j].keyboard.reserved = 1;
+		out[j].keyboard.keys_down[0] = word & 0xff;
+		out[j].keyboard.keys_down[1] = 0;
+		out[j].keyboard.keys_down[2] = 0;
+		out[j].keyboard.keys_down[3] = 0;
+		out[j].keyboard.keys_down[4] = 0;
+		out[j].keyboard.keys_down[5] = 0;
+		out[j].keyboard.leds = 0;
 		++j;
 
 		// Release key
-		packets[j].report_id = REPORT_ID_KEYBOARD;
-		packets[j].keyboard.modifiers = 0;
-		packets[j].keyboard.reserved = 1;
-		packets[j].keyboard.keys_down[0] = 0;
-		packets[j].keyboard.keys_down[1] = 0;
-		packets[j].keyboard.keys_down[2] = 0;
-		packets[j].keyboard.keys_down[3] = 0;
-		packets[j].keyboard.keys_down[4] = 0;
-		packets[j].keyboard.keys_down[5] = 0;
-		packets[j].keyboard.leds = 0;
+		out[j].report_id = REPORT_ID_KEYBOARD;
+		out[j].keyboard.modifiers = 0;
+		out[j].keyboard.reserved = 1;
+		out[j].keyboard.keys_down[0] = 0;
+		out[j].keyboard.keys_down[1] = 0;
+		out[j].keyboard.keys_down[2] = 0;
+		out[j].keyboard.keys_down[3] = 0;
+		out[j].keyboard.keys_down[4] = 0;
+		out[j].keyboard.keys_down[5] = 0;
+		out[j].keyboard.leds = 0;
 		++j;
 	}
 
-	packets[j].report_id = REPORT_ID_END;
+	out[j].report_id = REPORT_ID_END;
 
-	report_index = j;
+	return j;
 }
 
 static bool paused = true;
@@ -195,7 +208,7 @@ void sys_tick_handler(void)
 {
 	if (paused && !single_step) return;
 
-	struct composite_report report = packets[report_index];
+	struct composite_report report = user_data[report_index];
 	uint16_t len = 0;
 	uint8_t id = report.report_id;
 
@@ -228,12 +241,6 @@ static void usb_set_config(usbd_device *dev, uint16_t wValue)
 	cdcacm_set_config(dev, wValue);
 }
 
-// Section of flash memory for storing the user payload data - this should match the
-// size defined in the .ld linker script file. Points directly to flash, see below for writing.
-__attribute__((__section__(".user_data"))) const struct composite_report
-	user_data[sizeof(struct composite_report) / (128 - 8) * 1024];
-
-
 char *process_serial_command(char *buf, int len) {
 	(void) len;
 
@@ -245,6 +252,7 @@ char *process_serial_command(char *buf, int len) {
 			"?\tshow this help\r\n"
 			"v\tshow firmware version\r\n"
 			"w<hex>\twrite flash data\r\n"
+			"d<hex>\twrite compiled DuckyScript flash data\r\n"
 			"r\tread flash data\r\n"
 			"@\tshow current report index\r\n"
 			"p\tpause/resume execution\r\n"
@@ -252,14 +260,21 @@ char *process_serial_command(char *buf, int len) {
 			"z\treset report index to zero\r\n"
 			;
 	*/
-	} else if (buf[0] == 'w') {
+	} else if (buf[0] == 'w' || buf[0] == 'd') {
 		char binary[128] = {0};
 		int binary_len = len / 2;
 		int binary_words = binary_len / 2 + 1;
+		uint8_t *to_write = (uint8_t *)&binary;
 
 		unhexify(binary, &buf[1], len);
 
-		int result = flash_program_data((uint32_t)&user_data, (uint8_t *)binary, binary_words);
+		if (buf[0] == 'd') {
+			int records = convert_ducky_binary((uint8_t *)binary, binary_len, packet_buffer);
+			binary_words = records * sizeof(struct composite_report) / 2;
+			to_write = (uint8_t *)&packet_buffer;
+		}
+
+		int result = flash_program_data((uint32_t)&user_data, to_write, binary_words);
 		if (result == RESULT_OK) {
 			return "wrote flash";
 		} else if (result == FLASH_WRONG_DATA_WRITTEN) {
@@ -315,10 +330,12 @@ int main(void)
 	//add_ducky_binary((uint8_t *)"\x07\x02\x07\x00\x07\x00\x08\x00", 8);
 
 	// Hello, world!
-	add_ducky_binary((uint8_t *)
+	/*
+	convert_ducky_binary((uint8_t *)
 		"\x00\xff\x00\xff\x00\xff\x00\xeb\x0b\x02\x08\x00\x0f\x00\x0f\x00"
 		"\x12\x00\x36\x00\x2c\x00\x1a\x00\x12\x00\x15\x00\x0f\x00\x07\x00"
 		"\x1e\x02\x00\xff\x00\xf5\x28\x00", 36);
+	*/
 
 	usbd_dev = usbd_init(&st_usbfs_v1_usb_driver, &dev_descr, &config, usb_strings,
 		sizeof(usb_strings)/sizeof(char *),
