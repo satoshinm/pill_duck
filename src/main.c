@@ -337,6 +337,10 @@ int main(void)
 		"\x1e\x02\x00\xff\x00\xf5\x28\x00", 36);
 	*/
 
+	if (user_data[0].report_id != REPORT_ID_END) {
+		paused = false;
+	}
+
 	usbd_dev = usbd_init(&st_usbfs_v1_usb_driver, &dev_descr, &config, usb_strings,
 		sizeof(usb_strings)/sizeof(char *),
 		usbd_control_buffer, sizeof(usbd_control_buffer));
