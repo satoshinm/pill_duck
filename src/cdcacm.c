@@ -172,43 +172,26 @@ static int cdcacm_control_request(usbd_device *dev,
 	return 0;
 }
 
-/*
-extern int dir;
-extern bool jiggler;
-extern bool spam_keyboard;
-*/
-
 static void usbuart_usb_out_cb(usbd_device *dev, uint8_t ep)
 {
 	(void)ep;
 
 	char buf[CDCACM_PACKET_SIZE];
+	char buf2[CDCACM_PACKET_SIZE];
 	int len = usbd_ep_read_packet(dev, CDCACM_UART_ENDPOINT,
 					buf, CDCACM_PACKET_SIZE);
 
 
+	int j = 0;
 	for(int i = 0; i < len; i++) {
 		gpio_toggle(GPIOC, GPIO13);
-		/*
-		if (buf[i] == 'a') {
-			dir = -1;
-			jiggler = false;
-		} else if (buf[i] == 'd') {
-			dir = 1;
-			jiggler = false;
-		} else if (buf[i] == 'w') {
-			dir = 2;
-			jiggler = false;
-		} else if (buf[i] == 's') {
-			dir = 0;
-			jiggler = false;
-		} else if (buf[i] == 'q') {
-			jiggler = !jiggler;
-		} else if (buf[i] == 'k') {
-			spam_keyboard = !spam_keyboard;
-		}
-		*/
+
+		// Enter sends a CR, but an LF is needed to advance to next line
+		if (buf[i] == '\r') buf2[j++] = '\n';
+		buf2[j++] = buf[i];
 	}
+
+	usbd_ep_write_packet(dev, CDCACM_UART_ENDPOINT, buf2, j);
 }
 
 static void usbuart_usb_in_cb(usbd_device *dev, uint8_t ep)
