@@ -174,6 +174,21 @@ static int cdcacm_control_request(usbd_device *dev,
 	return 0;
 }
 
+static void send_chunked_blocking(char *buf, int len, usbd_device *dev, int endpoint, int max_packet_length) {
+	uint16_t bytes_written = 0;
+	uint16_t total_bytes_written = 0;
+	uint16_t bytes_remaining = len;
+
+	do {
+		uint16_t this_length = bytes_remaining;
+		if (this_length > max_packet_length) this_length = max_packet_length;
+
+		bytes_written = usbd_ep_write_packet(dev, endpoint, buf + total_bytes_written, this_length);
+		bytes_remaining -= bytes_written;
+		total_bytes_written += bytes_written;
+	} while (bytes_remaining > 0);
+}
+
 extern char *process_serial_command(char *buf, int len);
 
 static void usbuart_usb_out_cb(usbd_device *dev, uint8_t ep)
@@ -181,9 +196,9 @@ static void usbuart_usb_out_cb(usbd_device *dev, uint8_t ep)
 	(void)ep;
 
 	char buf[CDCACM_PACKET_SIZE];
-	char reply_buf[CDCACM_PACKET_SIZE];
+	char reply_buf[256];
 
-	static char typing_buf[256] = {0};
+	static char typing_buf[2048] = {0};
 	static int typing_index = 0;
 
 	int len = usbd_ep_read_packet(dev, CDCACM_UART_ENDPOINT,
@@ -204,10 +219,8 @@ static void usbuart_usb_out_cb(usbd_device *dev, uint8_t ep)
 		if (buf[i] == '\r' || buf[i] == '\n') {
 			char *response = process_serial_command(typing_buf, typing_index);
 			typing_index = 0;
-			size_t response_len = strlen(response);
-			if (response_len > 50) response_len = 50;
 
-			for (size_t k = 0; k < response_len; ++k) {
+			for (size_t k = 0; k < strlen(response); ++k) {
 				reply_buf[j++] = response[k];
 			}
 
@@ -223,7 +236,7 @@ static void usbuart_usb_out_cb(usbd_device *dev, uint8_t ep)
 		}
 	}
 
-	usbd_ep_write_packet(dev, CDCACM_UART_ENDPOINT, reply_buf, j);
+	send_chunked_blocking(reply_buf, j, dev, CDCACM_UART_ENDPOINT, CDCACM_PACKET_SIZE);
 }
 
 static void usbuart_usb_in_cb(usbd_device *dev, uint8_t ep)
