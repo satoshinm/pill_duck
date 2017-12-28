@@ -338,8 +338,8 @@ static void setup_clock(void) {
 	/* SysTick interrupt every N clock pulses: set reload to N-1
 	 * Period: N / (72 MHz / 8 )
 	 * */
-	//systick_set_reload(89999); // 10 ms
-	systick_set_reload(899999); // 100 ms
+	systick_set_reload(89999); // 10 ms
+	//systick_set_reload(899999); // 100 ms
 	systick_interrupt_enable();
 	systick_counter_enable();
 }
