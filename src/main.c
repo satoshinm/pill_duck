@@ -269,7 +269,7 @@ char *process_serial_command(char *buf, int len) {
 			;
 	*/
 	} else if (buf[0] == 'w' || buf[0] == 'd') {
-		char binary[128] = {0};
+		char binary[1024] = {0};
 		int binary_len = len / 2;
 		uint8_t *to_write = (uint8_t *)&binary;
 
