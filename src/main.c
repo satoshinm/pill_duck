@@ -327,17 +327,32 @@ char *process_serial_command(char *buf, int len) {
 	return "";
 }
 
+static void setup_clock(void) {
+	rcc_clock_setup_in_hsi_out_48mhz();
+	rcc_periph_clock_enable(RCC_GPIOC);
+
+	systick_set_clocksource(STK_CSR_CLKSOURCE_AHB_DIV8);
+	/* SysTick interrupt every N clock pulses: set reload to N-1 */
+	systick_set_reload(899999);
+	systick_interrupt_enable();
+	systick_counter_enable();
+}
+
+static void setup_gpio(void) {
+	// Built-in LED on blue pill board, PC13
+	gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ,
+		GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
+	gpio_set(GPIOC, GPIO13);
+
+}
+
 /* Buffer to be used for control requests. */
 uint8_t usbd_control_buffer[128];
 
 int main(void)
 {
-	rcc_clock_setup_in_hsi_out_48mhz();
-
-	rcc_periph_clock_enable(RCC_GPIOC);
-	gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ,
-		GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
-	gpio_set(GPIOC, GPIO13);
+	setup_clock();
+	setup_gpio();
 
 	//add_mouse_jiggler(30);
 	//add_keyboard_spammer(6); // 'c'
