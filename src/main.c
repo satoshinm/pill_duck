@@ -202,7 +202,7 @@ void sys_tick_handler(void)
 	uint16_t bytes_written = 0;
 	do {
 		bytes_written = usbd_ep_write_packet(usbd_dev, 0x81, &report, len);
-	} while (bytes_written != 0);
+	} while (bytes_written == 0);
 	gpio_toggle(GPIOC, GPIO13);
 
 	if (single_step) {
