@@ -199,7 +199,10 @@ void sys_tick_handler(void)
 		return;
 	}
 
-	usbd_ep_write_packet(usbd_dev, 0x81, &report, len);
+	uint16_t bytes_written = 0;
+	do {
+		bytes_written = usbd_ep_write_packet(usbd_dev, 0x81, &report, len);
+	} while (bytes_written != 0);
 	gpio_toggle(GPIOC, GPIO13);
 
 	if (single_step) {
@@ -332,8 +335,11 @@ static void setup_clock(void) {
 	rcc_periph_clock_enable(RCC_GPIOC);
 
 	systick_set_clocksource(STK_CSR_CLKSOURCE_AHB_DIV8);
-	/* SysTick interrupt every N clock pulses: set reload to N-1 */
-	systick_set_reload(899999);
+	/* SysTick interrupt every N clock pulses: set reload to N-1
+	 * Period: N / (72 MHz / 8 )
+	 * */
+	//systick_set_reload(89999); // 10 ms
+	systick_set_reload(899999); // 100 ms
 	systick_interrupt_enable();
 	systick_counter_enable();
 }

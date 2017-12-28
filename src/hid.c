@@ -109,11 +109,6 @@ void hid_set_config(usbd_device *dev, uint16_t wValue)
 				USB_REQ_TYPE_TYPE | USB_REQ_TYPE_RECIPIENT,
 				hid_control_request);
 
-	systick_set_clocksource(STK_CSR_CLKSOURCE_AHB_DIV8);
-	/* SysTick interrupt every N clock pulses: set reload to N-1 */
-	systick_set_reload(899999);
-	systick_interrupt_enable();
-	systick_counter_enable();
 }
 
 
