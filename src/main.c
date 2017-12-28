@@ -99,35 +99,6 @@ __attribute__((__section__(".user_data"))) const struct composite_report
 static struct composite_report packet_buffer[1024 / sizeof(struct composite_report)] = {0};
 
 
-/*
-void reset_packet_buffer(void)
-{
-	packets[0].report_id = REPORT_ID_END;
-	report_index = 0;
-}
-
-void add_keyboard_spammer(int scancode)
-{
-	int j = report_index;
-
-	packets[j].report_id = REPORT_ID_KEYBOARD;
-	packets[j].keyboard.modifiers = 0;
-	packets[j].keyboard.reserved = 0;
-	packets[j].keyboard.keys_down[0] = scancode;
-	packets[j].keyboard.keys_down[1] = 0;
-	packets[j].keyboard.keys_down[2] = 0;
-	packets[j].keyboard.keys_down[3] = 0;
-	packets[j].keyboard.keys_down[4] = 0;
-	packets[j].keyboard.keys_down[5] = 0;
-	packets[j].keyboard.leds = 0;
-	++j;
-
-	packets[j].report_id = REPORT_ID_END;
-
-	report_index = j;
-}
-*/
-
 // Convert a compiled DuckyScript code to USB HID reports
 // see: https://github.com/hak5darren/USB-Rubber-Ducky/blob/33a834b0e19f9d4f995432eb9dbcccb247c2e4df/Firmware/Source/Ducky_HID/src/main.c#L143
 int convert_ducky_binary(uint8_t *buf, int len, struct composite_report *out)
@@ -141,7 +112,10 @@ int convert_ducky_binary(uint8_t *buf, int len, struct composite_report *out)
 		uint16_t word = buf[i] | (buf[i + 1] << 8);
 
 		if ((word & 0xff) == 0) {
-			// TODO: wait
+			// Special case to delay for milliseconds
+			out[j].report_id = REPORT_ID_DELAY;
+			out[j].padding[0] = word >> 8;
+			++j;
 			continue;
 		}
 
@@ -180,6 +154,8 @@ int convert_ducky_binary(uint8_t *buf, int len, struct composite_report *out)
 
 static bool paused = true;
 static bool single_step = false;
+static bool delaying = false;
+static int delay_ticks_remaining = 0;
 void sys_tick_handler(void)
 {
 	if (paused && !single_step) return;
@@ -189,6 +165,22 @@ void sys_tick_handler(void)
 	uint8_t id = report.report_id;
 
 	if (id == REPORT_ID_NOP) {
+		return;
+	} else if (id == REPORT_ID_DELAY) {
+		if (!delaying) {
+			// Beginning of a delay
+			delay_ticks_remaining = report.padding[0];
+			delaying = true;
+			return;
+		} else {
+			// Delay for this many ticks
+			--delay_ticks_remaining;
+			if (delay_ticks_remaining <= 0) {
+				// Finished delaying, advance to next report
+				delaying = false;
+				++report_index;
+			}
+		}
 		return;
 	} else if (id == REPORT_ID_KEYBOARD) {
 		len = 9;
@@ -210,7 +202,7 @@ void sys_tick_handler(void)
 		paused = true;
 	}
 
-	report_index += 1;
+	++report_index;
 }
 
 
@@ -338,8 +330,9 @@ static void setup_clock(void) {
 	/* SysTick interrupt every N clock pulses: set reload to N-1
 	 * Period: N / (72 MHz / 8 )
 	 * */
-	systick_set_reload(89999); // 10 ms
 	//systick_set_reload(899999); // 100 ms
+	//systick_set_reload(89999); // 10 ms
+	systick_set_reload(8999); // 1 ms
 	systick_interrupt_enable();
 	systick_counter_enable();
 }

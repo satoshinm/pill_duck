@@ -32,6 +32,7 @@ struct composite_report {
 
 // Not real report IDs, used as pseudocommands when processing the packets array
 #define REPORT_ID_NOP		0
+#define REPORT_ID_DELAY		254
 #define REPORT_ID_END		255
 
 
