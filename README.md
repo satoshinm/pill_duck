@@ -1,10 +1,15 @@
 # Pill Duck: Scriptable USB HID device for STM32F103 blue pill
 
+[![CircleCI](https://circleci.com/gh/satoshinm/pill_duck.svg?style=svg)](https://circleci.com/gh/satoshinm/pill_duck)
+
 A keyboard/mouse USB HID device for the STM32F103 "blue pill" development board,
 inspired by the [USB Rubber Ducky](https://hakshop.com/products/usb-rubber-ducky-deluxe).
 
 **Hardware requirements**: Any of the ARM Cortex-M3 STM32F103 "minimum development boards" should work, I've tested with
 this board which can be acquired for ~$1.70: [STM32F103C8T6 ARM STM32 Minimum System Development Board Module](https://www.aliexpress.com/item/STM32F103C8T6-ARM-STM32-Minimum-System-Development-Board-Module/32656040083.html)
+
+**Downloads**: Prebuilt firmware binaries can be downloaded from [CircleCI](https://circleci.com/gh/satoshinm/pill_duck)
+artifacts, or see the next step for how to build yourself.
 
 **Building**: Install [ARM GCC Embedded Toolchain](https://launchpad.net/gcc-arm-embedded/) (if you're on macOS
 and have [Homebrew](https://brew.sh), just run `brew cask install gcc-arm-embedded`) then run `make`.
