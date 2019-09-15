@@ -316,7 +316,7 @@ char *process_serial_command(char *buf, int len) {
 	} else if (buf[0] == 'z') {
 		report_index = 0;
 	} else {
-		return "invalid command, try ? for help";
+		return "invalid command";
 	}
 
 	return "";
