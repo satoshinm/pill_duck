@@ -160,6 +160,13 @@ void sys_tick_handler(void)
 {
 	if (paused && !single_step) return;
 
+	// FIXME avoid spamming the USB host before our device has been configured
+	static unsigned start_delay = 0;
+	if (start_delay < 500) {
+		++start_delay;
+		return;
+	}
+
 	struct composite_report report = user_data[report_index];
 	uint16_t len = 0;
 	uint8_t id = report.report_id;
